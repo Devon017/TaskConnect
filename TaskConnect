@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TaskConnect Kenya - Freelance Marketplace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .pulse-ring {
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(99, 102, 241, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+        }
+        .category-scroll {
+            scroll-snap-type: x mandatory;
+        }
+        .category-item {
+            scroll-snap-align: start;
+        }
+    </style>
+<base target="_blank">
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+        const { 
+            Search, MapPin, MessageCircle, User, Home, Plus, Bell, 
+            Star, Clock, DollarSign, ChevronRight, Filter, MoreHorizontal,
+            Send, Paperclip, Phone, Mail, CheckCircle, X, Menu, Briefcase,
+            Camera, PenTool, Code, Truck, BookOpen, Smartphone, Monitor,
+            Sparkles, Shield, TrendingUp, Award, Map, CreditCard, Upload
+        } = lucide;
+
+        // Mock Data
+        const CATEGORIES = [
+            { id: 1, name: 'Graphic Design', icon: PenTool, color: 'bg-purple-100 text-purple-600' },
+            { id: 2, name: 'Computer Repair', icon: Monitor, color: 'bg-blue-100 text-blue-600' },
+            { id: 3, name: 'Writing', icon: BookOpen, color: 'bg-green-100 text-green-600' },
+            { id: 4, name: 'Programming', icon: Code, color: 'bg-indigo-100 text-indigo-600' },
+            { id: 5, name: 'Photography', icon: Camera, color: 'bg-pink-100 text-pink-600' },
+            { id: 6, name: 'Delivery', icon: Truck, color: 'bg-orange-100 text-orange-600' },
+            { id: 7, name: 'Tutoring', icon: BookOpen, color: 'bg-teal-100 text-teal-600' },
+            { id: 8, name: 'Phone Repair', icon: Smartphone, color: 'bg-red-100 text-red-600' }
+        ];
+
+        const MOCK_TASKS = [
+            {
+                id: 1,
+                title: "Design Church Poster for Sunday Service",
+                description: "Need a professional poster for our church's Sunday service. Should include event details and be print-ready.",
+                category: "Graphic Design",
+                budget: "KSh 2,000 - 5,000",
+                deadline: "2 days",
+                location: "Nairobi, CBD",
+                postedBy: "Grace M.",
+                avatar: "https://i.pravatar.cc/150?img=1",
+                proposals: 5,
+                featured: true,
+                coordinates: { lat: -1.2921, lng: 36.8219 }
+            },
+            {
+                id: 2,
+                title: "Fix Laptop Not Booting - HP Pavilion",
+                description: "My HP laptop suddenly stopped booting. Shows black screen. Need urgent repair today if possible.",
+                category: "Computer Repair",
+                budget: "KSh 1,500 - 3,000",
+                deadline: "Today",
+                location: "Westlands, Nairobi",
+                postedBy: "John K.",
+                avatar: "https://i.pravatar.cc/150?img=3",
+                proposals: 2,
+                featured: false,
+                coordinates: { lat: -1.2676, lng: 36.8061 }
+            },
+            {
+                id: 3,
+                title: "Write 5-Page Assignment on Computer Networks",
+                description: "Need help with a university assignment on TCP/IP protocols and network architecture. APA format required.",
+                category: "Writing",
+                budget: "KSh 3,000 - 6,000",
+                deadline: "3 days",
+                location: "Remote/Online",
+                postedBy: "Student X",
+                avatar: "https://i.pravatar.cc/150?img=5",
+                proposals: 8,
+                featured: true,
+                coordinates: null
+            },
+            {
+                id: 4,
+                title: "Event Photography - Birthday Party",
+                description: "Looking for a photographer for a 3-hour birthday party this Saturday evening. Need edited photos within 48 hours.",
+                category: "Photography",
+                budget: "KSh 5,000 - 8,000",
+                deadline: "Saturday",
+                location: "Karen, Nairobi",
+                postedBy: "Sarah W.",
+                avatar: "https://i.pravatar.cc/150?img=9",
+                proposals: 3,
+                featured: false,
+                coordinates: { lat: -1.3167, lng: 36.7167 }
+            },
+            {
+                id: 5,
+                title: "Install Software on 5 Office Computers",
+                description: "Need technician to install Microsoft Office and antivirus on 5 desktop computers in our office.",
+                category: "Computer Repair",
+                budget: "KSh 2,500 - 4,000",
+                deadline: "Tomorrow",
+                location: "Upper Hill",
+                postedBy: "Admin O.",
+                avatar: "https://i.pravatar.cc/150?img=12",
+                proposals: 4,
+                featured: false,
+                coordinates: { lat: -1.3000, lng: 36.8167 }
+            }
+        ];
+
+        const MOCK_FREELANCERS = [
+            {
+                id: 1,
+                name: "David Kimani",
+                skills: ["Graphic Design", "Branding", "Photoshop"],
+                rating: 4.9,
+                completed: 47,
+                hourlyRate: "KSh 1,500",
+                avatar: "https://i.pravatar.cc/150?img=11",
+                verified: true,
+                location: "Nairobi"
+            },
+            {
+                id: 2,
+                name: "Mary Ochieng",
+                skills: ["Computer Repair", "Networking", "IT Support"],
+                rating: 4.8,
+                completed: 32,
+                hourlyRate: "KSh 1,000",
+                avatar: "https://i.pravatar.cc/150?img=16",
+                verified: true,
+                location: "Westlands"
+            },
+            {
+                id: 3,
+                name: "James Mwangi",
+                skills: ["Academic Writing", "Research", "Data Analysis"],
+                rating: 4.7,
+                completed: 28,
+                hourlyRate: "KSh 800",
+                avatar: "https://i.pravatar.cc/150?img=13",
+                verified: false,
+                location: "Remote"
+            }
+        ];
+
+        const MOCK_MESSAGES = [
+            {
+                id: 1,
+                sender: "Grace M.",
+                avatar: "https://i.pravatar.cc/150?img=1",
+                lastMessage: "Can you make the poster blue instead?",
+                time: "2m ago",
+                unread: 2,
+                task: "Design Church Poster"
+            },
+            {
+                id: 2,
+                sender: "John K.",
+                avatar: "https://i.pravatar.cc/150?img=3",
+                lastMessage: "I'm available tomorrow at 2pm",
+                time: "1h ago",
+                unread: 0,
+                task: "Laptop Repair"
+            },
+            {
+                id: 3,
+                sender: "Sarah W.",
+                avatar: "https://i.pravatar.cc/150?img=9",
+                lastMessage: "Perfect! See you on Saturday",
+                time: "3h ago",
+                unread: 0,
+                task: "Photography"
+            }
+        ];
+
+        // Components
+        const Button = ({ children, variant = 'primary', className = '', onClick, disabled }) => {
+            const baseStyle = "w-full py-3 px-4 rounded-xl font-semibold transition-all duration-200 active:scale-95 flex items-center justify-center gap-2";
+            const variants = {
+                primary: "bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-200",
+                secondary: "bg-white text-gray-700 border-2 border-gray-200 hover:border-indigo-600 hover:text-indigo-600",
+                outline: "border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50",
+                ghost: "text-gray-600 hover:bg-gray-100",
+                danger: "bg-red-500 text-white hover:bg-red-600"
+            };
+            
+            return (
+                <button 
+                    className={`${baseStyle} ${variants[variant]} ${className} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    onClick={onClick}
+                    disabled={disabled}
+                >
+                    {children}
+                </button>
+            );
+        };
+
+        const Input = ({ label, placeholder, type = "text", icon: Icon, value, onChange, multiline }) => (
+            <div className="mb-4">
+                {label && <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>}
+                <div className="relative">
+                    {Icon && <Icon className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />}
+                    {multiline ? (
+                        <textarea
+                            className={`w-full p-3 ${Icon ? 'pl-10' : ''} border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all resize-none`}
+                            placeholder={placeholder}
+                            rows={4}
+                            value={value}
+                            onChange={onChange}
+                        />
+                    ) : (
+                        <input
+                            type={type}
+                            className={`w-full p-3 ${Icon ? 'pl-10' : ''} border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all`}
+                            placeholder={placeholder}
+                            value={value}
+                            onChange={onChange}
+                        />
+                    )}
+                </div>
+            </div>
+        );
+
+        const Badge = ({ children, variant = 'default' }) => {
+            const variants = {
+                default: "bg-gray-100 text-gray-600",
+                success: "bg-green-100 text-green-700",
+                warning: "bg-yellow-100 text-yellow-700",
+                info: "bg-blue-100 text-blue-700",
+                purple: "bg-purple-100 text-purple-700"
+            };
+            return (
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${variants[variant]}`}>
+                    {children}
+                </span>
+            );
+        };
+
+        // Main App Component
+        const TaskConnectApp = () => {
+            const [currentView, setCurrentView] = useState('welcome');
+            const [user, setUser] = useState(null);
+            const [selectedTask, setSelectedTask] = useState(null);
+            const [selectedChat, setSelectedChat] = useState(null);
+            const [showPaymentModal, setShowPaymentModal] = useState(false);
+            const [notification, setNotification] = useState(null);
+
+            const showNotification = (message, type = 'success') => {
+                setNotification({ message, type });
+                setTimeout(() => setNotification(null), 3000);
+            };
+
+            // Welcome Screen
+            const WelcomeScreen = () => (
+                <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 flex flex-col items-center justify-center p-6 text-white">
+                    <div className="w-24 h-24 bg-white/20 rounded-3xl flex items-center justify-center mb-8 pulse-ring backdrop-blur-sm">
+                        <Briefcase className="w-12 h-12 text-white" />
+                    </div>
+                    <h1 className="text-4xl font-bold mb-2 text-center">TaskConnect</h1>
+                    <p className="text-indigo-100 text-lg mb-2 text-center">Kenya's Freelance Marketplace</p>
+                    <p className="text-indigo-200 text-sm mb-12 text-center max-w-xs">Connect with skilled freelancers for quick local tasks and services</p>
+                    
+                    <div className="w-full max-w-sm space-y-3">
+                        <Button 
+                            className="bg-white text-indigo-600 hover:bg-gray-100 shadow-xl"
+                            onClick={() => setCurrentView('register')}
+                        >
+                            Get Started
+                        </Button>
+                        <Button 
+                            variant="outline" 
+                            className="border-white text-white hover:bg-white/10"
+                            onClick={() => setCurrentView('login')}
+                        >
+                            I already have an account
+                        </Button>
+                    </div>
+                    
+                    <div className="mt-12 flex gap-8 text-center">
+                        <div>
+                            <p className="text-2xl font-bold">10k+</p>
+                            <p className="text-xs text-indigo-200">Tasks Done</p>
+                        </div>
+                        <div>
+                            <p className="text-2xl font-bold">5k+</p>
+                            <p className="text-xs text-indigo-200">Freelancers</p>
+                        </div>
+                        <div>
+                            <p className="text-2xl font-bold">4.8★</p>
+                            <p className="text-xs text-indigo-200">Rating</p>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // Registration Screen
+            const RegisterScreen = () => {
+                const [step, setStep] = useState(1);
+                const [role, setRole] = useState(null);
+                const [formData, setFormData] = useState({});
+
+                const handleRegister = () => {
+                    setUser({
+                        name: formData.name || "Alex M.",
+                        email: formData.email || "alex@example.com",
+                        role: role,
+                        avatar: "https://i.pravatar.cc/150?img=33",
+                        rating: 5.0,
+                        completed: 0
+                    });
+                    showNotification("Account created successfully!");
+                    setCurrentView('home');
+                };
+
+                return (
+                    <div className="min-h-screen bg-white p-6">
+                        <div className="max-w-md mx-auto">
+                            <button onClick={() => setCurrentView('welcome')} className="mb-6 text-gray-600 flex items-center gap-2">
+                                <ChevronRight className="w-5 h-5 rotate-180" /> Back
+                            </button>
+                            
+                            <h2 className="text-2xl font-bold mb-2">Create Account</h2>
+                            <p className="text-gray-600 mb-8">Step {step} of 3</p>
+
+                            {step === 1 && (
+                                <div className="space-y-4 fade-in">
+                                    <p className="font-medium mb-4">I want to:</p>
+                                    <div 
+                                        className={`p-6 border-2 rounded-2xl cursor-pointer transition-all ${role === 'client' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200'}`}
+                                        onClick={() => setRole('client')}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                                                <Briefcase className="w-6 h-6 text-blue-600" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-semibold">Hire Freelancers</h3>
+                                                <p className="text-sm text-gray-600">Post tasks and get work done</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div 
+                                        className={`p-6 border-2 rounded-2xl cursor-pointer transition-all ${role === 'freelancer' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200'}`}
+                                        onClick={() => setRole('freelancer')}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                                                <Star className="w-6 h-6 text-green-600" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-semibold">Work as Freelancer</h3>
+                                                <p className="text-sm text-gray-600">Find tasks and earn money</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div 
+                                        className={`p-6 border-2 rounded-2xl cursor-pointer transition-all ${role === 'both' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200'}`}
+                                        onClick={() => setRole('both')}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                                                <User className="w-6 h-6 text-purple-600" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-semibold">Both</h3>
+                                                <p className="text-sm text-gray-600">Hire and work flexibly</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <Button 
+                                        disabled={!role} 
+                                        onClick={() => setStep(2)}
+                                        className="mt-6"
+                                    >
+                                        Continue
+                                    </Button>
+                                </div>
+                            )}
+
+                            {step === 2 && (
+                                <div className="space-y-4 fade-in">
+                                    <Input 
+                                        label="Full Name" 
+                                        placeholder="Enter your full name"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                    />
+                                    <Input 
+                                        label="Email" 
+                                        type="email"
+                                        placeholder="your@email.com"
+                                        value={formData.email}
+                                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                    />
+                                    <Input 
+                                        label="Phone Number" 
+                                        placeholder="07XX XXX XXX"
+                                        value={formData.phone}
+                                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                                    />
+                                    <Input 
+                                        label="Password" 
+                                        type="password"
+                                        placeholder="Create a password"
+                                    />
+                                    
+                                    <Button onClick={() => setStep(3)} className="mt-4">Continue</Button>
+                                    <Button variant="ghost" onClick={() => setStep(1)}>Back</Button>
+                                </div>
+                            )}
+
+                            {step === 3 && (
+                                <div className="space-y-4 fade-in">
+                                    <div className="text-center mb-6">
+                                        <div className="w-24 h-24 bg-gray-100 rounded-full mx-auto mb-4 flex items-center justify-center border-4 border-dashed border-gray-300">
+                                            <Camera className="w-8 h-8 text-gray-400" />
+                                        </div>
+                                        <p className="text-sm text-gray-600">Add profile photo (optional)</p>
+                                    </div>
+
+                                    {role !== 'client' && (
+                                        <div className="mb-4">
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Your Skills (select up to 5)</label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {['Graphic Design', 'Writing', 'Programming', 'Repair', 'Photography', 'Tutoring'].map(skill => (
+                                                    <button 
+                                                        key={skill}
+                                                        className="px-3 py-1.5 rounded-full border border-gray-300 text-sm hover:border-indigo-600 hover:text-indigo-600 transition-colors"
+                                                    >
+                                                        {skill}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <Input 
+                                        label="Location" 
+                                        placeholder="e.g., Nairobi, Westlands"
+                                        icon={MapPin}
+                                    />
+
+                                    <div className="flex gap-3 mt-6">
+                                        <Button variant="secondary" onClick={() => setStep(2)} className="flex-1">Back</Button>
+                                        <Button onClick={handleRegister} className="flex-1">Complete</Button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            };
+
+            // Home Screen
+            const HomeScreen = () => {
+                const [activeTab, setActiveTab] = useState('tasks');
+                const [searchQuery, setSearchQuery] = useState('');
+                const [selectedCategory, setSelectedCategory] = useState('All');
+
+                const filteredTasks = MOCK_TASKS.filter(task => {
+                    const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase());
+                    const matchesCategory = selectedCategory === 'All' || task.category === selectedCategory;
+                    return matchesSearch && matchesCategory;
+                });
+
+                return (
+                    <div className="min-h-screen bg-gray-50 pb-24">
+                        {/* Header */}
+                        <div className="bg-white px-4 pt-12 pb-4 shadow-sm sticky top-0 z-10">
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <p className="text-sm text-gray-600">Good morning,</p>
+                                    <h1 className="text-xl font-bold text-gray-900">{user?.name || 'Guest'}</h1>
+                                </div>
+                                <div className="flex gap-3">
+                                    <button className="p-2 bg-gray-100 rounded-full relative">
+                                        <Bell className="w-5 h-5 text-gray-700" />
+                                        <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                                    </button>
+                                    <button 
+                                        className="w-10 h-10 rounded-full overflow-hidden border-2 border-indigo-100"
+                                        onClick={() => setCurrentView('profile')}
+                                    >
+                                        <img src={user?.avatar} alt="Profile" className="w-full h-full object-cover" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Search */}
+                            <div className="relative">
+                                <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                                <input 
+                                    type="text" 
+                                    placeholder="Search tasks, skills..."
+                                    className="w-full pl-10 pr-4 py-3 bg-gray-100 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="p-4">
+                            {/* Categories */}
+                            <div className="mb-6">
+                                <div className="flex items-center justify-between mb-3">
+                                    <h2 className="font-semibold text-gray-900">Categories</h2>
+                                    <button className="text-indigo-600 text-sm font-medium">See All</button>
+                                </div>
+                                <div className="flex gap-3 overflow-x-auto hide-scrollbar category-scroll pb-2">
+                                    <button 
+                                        className={`category-item flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${selectedCategory === 'All' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 border border-gray-200'}`}
+                                        onClick={() => setSelectedCategory('All')}
+                                    >
+                                        All
+                                    </button>
+                                    {CATEGORIES.map(cat => (
+                                        <button 
+                                            key={cat.id}
+                                            className={`category-item flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${selectedCategory === cat.name ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 border border-gray-200'}`}
+                                            onClick={() => setSelectedCategory(cat.name)}
+                                        >
+                                            <cat.icon className="w-4 h-4" />
+                                            {cat.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Featured Tasks */}
+                            <div className="mb-6">
+                                <div className="flex items-center justify-between mb-3">
+                                    <h2 className="font-semibold text-gray-900">Available Tasks</h2>
+                                    <button className="p-1 hover:bg-gray-200 rounded-lg">
+                                        <Filter className="w-5 h-5 text-gray-600" />
+                                    </button>
+                                </div>
+                                
+                                <div className="space-y-3">
+                                    {filteredTasks.map(task => (
+                                        <div 
+                                            key={task.id} 
+                                            className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 active:scale-[0.98] transition-transform cursor-pointer"
+                                            onClick={() => {
+                                                setSelectedTask(task);
+                                                setCurrentView('taskDetail');
+                                            }}
+                                        >
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`px-2 py-1 rounded-lg text-xs font-medium ${CATEGORIES.find(c => c.name === task.category)?.color || 'bg-gray-100'}`}>
+                                                        {task.category}
+                                                    </span>
+                                                    {task.featured && (
+                                                        <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-lg text-xs font-medium flex items-center gap-1">
+                                                            <Sparkles className="w-3 h-3" /> Featured
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <span className="text-sm font-semibold text-indigo-600">{task.budget}</span>
+                                            </div>
+                                            
+                                            <h3 className="font-semibold text-gray-900 mb-1 line-clamp-1">{task.title}</h3>
+                                            <p className="text-sm text-gray-600 mb-3 line-clamp-2">{task.description}</p>
+                                            
+                                            <div className="flex items-center justify-between text-xs text-gray-500">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="flex items-center gap-1">
+                                                        <Clock className="w-3.5 h-3.5" /> {task.deadline}
+                                                    </span>
+                                                    <span className="flex items-center gap-1">
+                                                        <MapPin className="w-3.5 h-3.5" /> {task.location}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <MessageCircle className="w-3.5 h-3.5" /> {task.proposals} bids
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Top Freelancers */}
+                            <div>
+                                <div className="flex items-center justify-between mb-3">
+                                    <h2 className="font-semibold text-gray-900">Top Freelancers</h2>
+                                    <button className="text-indigo-600 text-sm font-medium">View All</button>
+                                </div>
+                                <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
+                                    {MOCK_FREELANCERS.map(freelancer => (
+                                        <div key={freelancer.id} className="flex-shrink-0 bg-white p-4 rounded-2xl border border-gray-100 w-64">
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <img src={freelancer.avatar} alt={freelancer.name} className="w-12 h-12 rounded-full object-cover" />
+                                                <div>
+                                                    <h3 className="font-semibold text-sm flex items-center gap-1">
+                                                        {freelancer.name}
+                                                        {freelancer.verified && <CheckCircle className="w-4 h-4 text-blue-500" />}
+                                                    </h3>
+                                                    <div className="flex items-center gap-1 text-xs text-gray-600">
+                                                        <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                                                        <span>{freelancer.rating}</span>
+                                                        <span>({freelancer.completed} tasks)</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-wrap gap-1 mb-3">
+                                                {freelancer.skills.slice(0, 2).map(skill => (
+                                                    <span key={skill} className="text-xs px-2 py-1 bg-gray-100 rounded-full text-gray-600">{skill}</span>
+                                                ))}
+                                            </div>
+                                            <Button variant="outline" className="py-2 text-sm">View Profile</Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Bottom Navigation */}
+                        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-3 flex justify-between items-center z-50">
+                            <button 
+                                className="flex flex-col items-center gap-1 text-indigo-600"
+                                onClick={() => setCurrentView('home')}
+                            >
+                                <Home className="w-6 h-6" />
+                                <span className="text-xs font-medium">Home</span>
+                            </button>
+                            <button 
+                                className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600"
+                                onClick={() => setCurrentView('browse')}
+                            >
+                                <Search className="w-6 h-6" />
+                                <span className="text-xs font-medium">Browse</span>
+                            </button>
+                            <button 
+                                className="flex flex-col items-center justify-center w-14 h-14 bg-indigo-600 rounded-full -mt-8 shadow-lg shadow-indigo-300 text-white hover:scale-105 transition-transform"
+                                onClick={() => setCurrentView('postTask')}
+                            >
+                                <Plus className="w-7 h-7" />
+                            </button>
+                            <button 
+                                className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 relative"
+                                onClick={() => setCurrentView('messages')}
+                            >
+                                <MessageCircle className="w-6 h-6" />
+                                <span className="text-xs font-medium">Messages</span>
+                                <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                            </button>
+                            <button 
+                                className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600"
+                                onClick={() => setCurrentView('profile')}
+                            >
+                                <User className="w-6 h-6" />
+                                <span className="text-xs font-medium">Profile</span>
+                            </button>
+                        </div>
+                    </div>
+                );
+            };
+
+            // Task Detail Screen
+            const TaskDetailScreen = () => {
+                if (!selectedTask) return null;
+
+                return (
+                    <div className="min-h-screen bg-gray-50 pb-24">
+                        <div className="bg-white px-4 pt-12 pb-4 shadow-sm sticky top-0 z-10">
+                            <button 
+                                onClick={() => setCurrentView('home')}
+                                className="flex items-center gap-2 text-gray-600 mb-2"
+                            >
+                                <ChevronRight className="w-5 h-5 rotate-180" /> Back
+                            </button>
+                            <h1 className="text-xl font-bold">Task Details</h1>
+                        </div>
+
+                        <div className="p-4 space-y-4">
+                            <div className="bg-white p-5 rounded-2xl shadow-sm">
+                                <div className="flex items-start justify-between mb-4">
+                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${CATEGORIES.find(c => c.name === selectedTask.category)?.color}`}>
+                                        {selectedTask.category}
+                                    </span>
+                                    {selectedTask.featured && (
+                                        <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium flex items-center gap-1">
+                                            <Sparkles className="w-4 h-4" /> Featured
+                                        </span>
+                                    )}
+                                </div>
+                                
+                                <h2 className="text-xl font-bold mb-3">{selectedTask.title}</h2>
+                                <p className="text-gray-600 mb-6 leading-relaxed">{selectedTask.description}</p>
+                                
+                                <div className="grid grid-cols-2 gap-4 mb-6">
+                                    <div className="bg-gray-50 p-3 rounded-xl">
+                                        <p className="text-xs text-gray-500 mb-1">Budget</p>
+                                        <p className="font-semibold text-indigo-600">{selectedTask.budget}</p>
+                                    </div>
+                                    <div className="bg-gray-50 p-3 rounded-xl">
+                                        <p className="text-xs text-gray-500 mb-1">Deadline</p>
+                                        <p className="font-semibold text-gray-900">{selectedTask.deadline}</p>
+                                    </div>
+                                    <div className="bg-gray-50 p-3 rounded-xl">
+                                        <p className="text-xs text-gray-500 mb-1">Location</p>
+                                        <p className="font-semibold text-gray-900 flex items-center gap-1">
+                                            <MapPin className="w-4 h-4" /> {selectedTask.location}
+                                        </p>
+                                    </div>
+                                    <div className="bg-gray-50 p-3 rounded-xl">
+                                        <p className="text-xs text-gray-500 mb-1">Proposals</p>
+                                        <p className="font-semibold text-gray-900">{selectedTask.proposals} bids</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-3 p-4 bg-indigo-50 rounded-xl mb-6">
+                                    <img src={selectedTask.avatar} alt={selectedTask.postedBy} className="w-12 h-12 rounded-full" />
+                                    <div className="flex-1">
+                                        <p className="font-semibold text-gray-900">{selectedTask.postedBy}</p>
+                                        <p className="text-sm text-gray-600">Posted 2 hours ago</p>
+                                    </div>
+                                    <button className="p-2 bg-white rounded-full shadow-sm">
+                                        <MessageCircle className="w-5 h-5 text-indigo-600" />
+                                    </button>
+                                </div>
+
+                                {user?.role !== 'client' && (
+                                    <Button onClick={() => setCurrentView('bid')}>
+                                        Submit Proposal
+                                    </Button>
+                                )}
+                            </div>
+
+                            {/* Map Preview */}
+                            {selectedTask.coordinates && (
+                                <div className="bg-white p-4 rounded-2xl shadow-sm">
+                                    <h3 className="font-semibold mb-3 flex items-center gap-2">
+                                        <Map className="w-5 h-5 text-indigo-600" /> Location
+                                    </h3>
+                                    <div className="h-48 bg-gray-200 rounded-xl flex items-center justify-center relative overflow-hidden">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-100 to-purple-100"></div>
+                                        <div className="relative z-10 text-center">
+                                            <MapPin className="w-12 h-12 text-indigo-600 mx-auto mb-2" />
+                                            <p className="font-medium text-gray-900">{selectedTask.location}</p>
+                                            <p className="text-sm text-gray-600">Approx. 2.5 km away</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            };
+
+            // Post Task Screen
+            const PostTaskScreen = () => {
+                const [step, setStep] = useState(1);
+                const [taskData, setTaskData] = useState({
+                    title: '',
+                    category: '',
+                    description: '',
+                    budget: '',
+                    deadline: '',
+                    location: '',
+                    attachments: []
+                });
+
+                const handlePost = () => {
+                    showNotification("Task posted successfully!");
+                    setCurrentView('home');
+                };
+
+                return (
+                    <div className="min-h-screen bg-gray-50 pb-24">
+                        <div className="bg-white px-4 pt-12 pb-4 shadow-sm sticky top-0 z-10">
+                            <div className="flex items-center justify-between">
+                                <h1 className="text-xl font-bold">Post a Task</h1>
+                                <button onClick={() => setCurrentView('home')} className="p-2 hover:bg-gray-100 rounded-full">
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
+                            <div className="mt-4 flex gap-2">
+                                {[1, 2, 3].map(i => (
+                                    <div key={i} className={`flex-1 h-1 rounded-full ${i <= step ? 'bg-indigo-600' : 'bg-gray-200'}`}></div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="p-4">
+                            {step === 1 && (
+                                <div className="space-y-4 fade-in">
+                                    <div className="bg-blue-50 p-4 rounded-xl mb-6">
+                                        <div className="flex items-start gap-3">
+                                            <Sparkles className="w-5 h-5 text-blue-600 mt-0.5" />
+                                            <div>
+                                                <p className="font-medium text-blue-900 text-sm">AI Assistant</p>
+                                                <p className="text-sm text-blue-700">Describe what you need and we'll suggest the best category and price range.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <Input 
+                                        label="What do you need done?" 
+                                        placeholder="e.g., Design a poster for my event"
+                                        value={taskData.title}
+                                        onChange={(e) => setTaskData({...taskData, title: e.target.value})}
+                                    />
+                                    
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {CATEGORIES.slice(0, 6).map(cat => (
+                                                <button
+                                                    key={cat.id}
+                                                    className={`p-3 rounded-xl border-2 text-left transition-all ${taskData.category === cat.name ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200'}`}
+                                                    onClick={() => setTaskData({...taskData, category: cat.name})}
+                                                >
+                                                    <cat.icon className={`w-5 h-5 mb-1 ${taskData.category === cat.name ? 'text-indigo-600' : 'text-gray-400'}`} />
+                                                    <span className="text-sm font-medium">{cat.name}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <Button onClick={() => setStep(2)} disabled={!taskData.title || !taskData.category}>
+                                        Next: Details
+                                    </Button>
+                                </div>
+                            )}
+
+                            {step === 2 && (
+                                <div className="space-y-4 fade-in">
+                                    <Input 
+                                        label="Description" 
+                                        placeholder="Describe the task in detail..."
+                                        multiline
+                                        value={taskData.description}
+                                        onChange={(e) => setTaskData({...taskData, description: e.target.value})}
+                                    />
+                                    
+                                    <Input 
+                                        label="Budget Range (KSh)" 
+                                        placeholder="e.g., 2000-5000"
+                                        icon={DollarSign}
+                                        value={taskData.budget}
+                                        onChange={(e) => setTaskData({...taskData, budget: e.target.value})}
+                                    />
+                                    
+                                    <Input 
+                                        label="Deadline" 
+                                        placeholder="e.g., 3 days"
+                                        icon={Clock}
+                                        value={taskData.deadline}
+                                        onChange={(e) => setTaskData({...taskData, deadline: e.target.value})}
+                                    />
+                                    
+                                    <Input 
+                                        label="Location" 
+                                        placeholder="e.g., Nairobi CBD or Remote"
+                                        icon={MapPin}
+                                        value={taskData.location}
+                                        onChange={(e) => setTaskData({...taskData, location: e.target.value})}
+                                    />
+
+                                    <div className="flex gap-3">
+                                        <Button variant="secondary" onClick={() => setStep(1)} className="flex-1">Back</Button>
+                                        <Button onClick={() => setStep(3)} className="flex-1">Next</Button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {step === 3 && (
+                                <div className="space-y-4 fade-in">
+                                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center">
+                                        <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                                        <p className="text-gray-600 mb-2">Upload files or images</p>
+                                        <p className="text-sm text-gray-400">Tap to browse (optional)</p>
+                                    </div>
+
+                                    <div className="bg-gray-50 p-4 rounded-xl">
+                                        <h3 className="font-semibold mb-3">Preview</h3>
+                                        <div className="space-y-2 text-sm">
+                                            <p><span className="text-gray-600">Title:</span> {taskData.title}</p>
+                                            <p><span className="text-gray-600">Category:</span> {taskData.category}</p>
+                                            <p><span className="text-gray-600">Budget:</span> KSh {taskData.budget}</p>
+                                            <p><span className="text-gray-600">Location:</span> {taskData.location}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-3">
+                                        <Button variant="secondary" onClick={() => setStep(2)} className="flex-1">Back</Button>
+                                        <Button onClick={handlePost} className="flex-1">Post Task</Button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            };
+
+            // Messages Screen
+            const MessagesScreen = () => {
+                return (
+                    <div className="min-h-screen bg-gray-50 pb-24">
+                        <div className="bg-white px-4 pt-12 pb-4 shadow-sm sticky top-0 z-10">
+                            <h1 className="text-xl font-bold">Messages</h1>
+                        </div>
+                        
+                        <div className="p-4 space-y-3">
+                            {MOCK_MESSAGES.map(chat => (
+                                <div 
+                                    key={chat.id} 
+                                    className="bg-white p-4 rounded-2xl shadow-sm flex items-center gap-4 active:scale-[0.98] transition-transform cursor-pointer"
+                                    onClick={() => {
+                                        setSelectedChat(chat);
+                                        setCurrentView('chat');
+                                    }}
+                                >
+                                    <div className="relative">
+                                        <img src={chat.avatar} alt={chat.sender} className="w-14 h-14 rounded-full object-cover" />
+                                        {chat.unread > 0 && (
+                                            <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                                                {chat.unread}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <h3 className="font-semibold text-gray-900">{chat.sender}</h3>
+                                            <span className="text-xs text-gray-500">{chat.time}</span>
+                                        </div>
+                                        <p className="text-sm text-gray-600 truncate mb-1">{chat.lastMessage}</p>
+                                        <p className="text-xs text-indigo-600 font-medium">Re: {chat.task}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            };
+
+            // Chat Screen
+            const ChatScreen = () => {
+                const [message, setMessage] = useState('');
+                const messagesEndRef = useRef(null);
+
+                const scrollToBottom = () => {
+                    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+                };
+
+                useEffect(() => {
+                    scrollToBottom();
+                }, []);
+
+                return (
+                    <div className="min-h-screen bg-gray-100 flex flex-col">
+                        <div className="bg-white px-4 pt-12 pb-4 shadow-sm flex items-center gap-3">
+                            <button onClick={() => setCurrentView('messages')} className="p-2 -ml-2 hover:bg-gray-100 rounded-full">
+                                <ChevronRight className="w-6 h-6 rotate-180" />
+                            </button>
+                            <img src={selectedChat?.avatar} alt="" className="w-10 h-10 rounded-full" />
+                            <div className="flex-1">
+                                <h2 className="font-semibold">{selectedChat?.sender}</h2>
+                                <p className="text-xs text-green-600 flex items-center gap-1">
+                                    <span className="w-2 h-2 bg-green-500 rounded-full"></span> Online
+                                </p>
+                            </div>
+                            <button className="p-2 hover:bg-gray-100 rounded-full">
+                                <MoreHorizontal className="w-6 h-6 text-gray-600" />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                            <div className="bg-white p-3 rounded-2xl rounded-tl-none self-start max-w-[80%] shadow-sm">
+                                <p className="text-gray-800">Hi! I saw your task about the poster design. I can help with that.</p>
+                                <span className="text-xs text-gray-400 mt-1 block">10:30 AM</span>
+                            </div>
+                            
+                            <div className="bg-indigo-600 text-white p-3 rounded-2xl rounded-tr-none self-end max-w-[80%] ml-auto shadow-md">
+                                <p>Great! Can you show me some of your previous work?</p>
+                                <span className="text-xs text-indigo-200 mt-1 block">10:32 AM</span>
+                            </div>
+
+                            <div className="bg-white p-3 rounded-2xl rounded-tl-none self-start max-w-[80%] shadow-sm">
+                                <p className="text-gray-800">Sure, here's my portfolio. I specialize in church graphics and event posters.</p>
+                                <div className="mt-2 bg-gray-100 rounded-lg p-3 flex items-center gap-2">
+                                    <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                                        <Briefcase className="w-5 h-5 text-indigo-600" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium">Portfolio_2024.pdf</p>
+                                        <p className="text-xs text-gray-500">2.4 MB</p>
+                                    </div>
+                                </div>
+                                <span className="text-xs text-gray-400 mt-1 block">10:35 AM</span>
+                            </div>
+
+                            <div className="bg-indigo-600 text-white p-3 rounded-2xl rounded-tr-none self-end max-w-[80%] ml-auto shadow-md">
+                                <p>Can you make the poster blue instead?</p>
+                                <span className="text-xs text-indigo-200 mt-1 block">10:36 AM</span>
+                            </div>
+                            
+                            <div ref={messagesEndRef} />
+                        </div>
+
+                        <div className="bg-white p-4 border-t border-gray-200">
+                            <div className="flex items-center gap-2">
+                                <button className="p-2 hover:bg-gray-100 rounded-full">
+                                    <Paperclip className="w-6 h-6 text-gray-600" />
+                                </button>
+                                <input 
+                                    type="text" 
+                                    placeholder="Type a message..."
+                                    className="flex-1 bg-gray-100 rounded-full px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500"
+                                    value={message}
+                                    onChange={(e) => setMessage(e.target.value)}
+                                />
+                                <button className="p-3 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-colors">
+                                    <Send className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            // Profile Screen
+            const ProfileScreen = () => {
+                return (
+                    <div className="min-h-screen bg-gray-50 pb-24">
+                        <div className="bg-indigo-600 px-4 pt-12 pb-16 text-white">
+                            <div className="flex items-center justify-between mb-6">
+                                <h1 className="text-xl font-bold">Profile</h1>
+                                <button className="p-2 hover:bg-white/10 rounded-full">
+                                    <MoreHorizontal className="w-6 h-6" />
+                                </button>
+                            </div>
+                            
+                            <div className="flex items-center gap-4">
+                                <div className="relative">
+                                    <img src={user?.avatar} alt="" className="w-20 h-20 rounded-full border-4 border-white/30 object-cover" />
+                                    <button className="absolute bottom-0 right-0 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-lg">
+                                        <Camera className="w-3 h-3 text-gray-700" />
+                                    </button>
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold">{user?.name}</h2>
+                                    <p className="text-indigo-200 capitalize">{user?.role} Account</p>
+                                    <div className="flex items-center gap-3 mt-2">
+                                        <span className="flex items-center gap-1 text-sm">
+                                            <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" /> {user?.rating}
+                                        </span>
+                                        <span className="text-indigo-200">•</span>
+                                        <span className="text-sm">{user?.completed} tasks</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="px-4 -mt-8 space-y-4">
+                            <div className="bg-white rounded-2xl shadow-sm p-4 grid grid-cols-3 gap-4 text-center">
+                                <div>
+                                    <p className="text-2xl font-bold text-gray-900">KSh 0</p>
+                                    <p className="text-xs text-gray-600">Earnings</p>
+                                </div>
+                                <div>
+                                    <p className="text-2xl font-bold text-gray-900">0</p>
+                                    <p className="text-xs text-gray-600">Active</p>
+                                </div>
+                                <div>
+                                    <p className="text-2xl font-bold text-gray-900">0</p>
+                                    <p className="text-xs text-gray-600">Completed</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                                <button className="w-full px-4 py-4 flex items-center justify-between hover:bg-gray-50 border-b border-gray-100">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                                            <User className="w-5 h-5 text-indigo-600" />
+                                        </div>
+                                        <span className="font-medium">Edit Profile</span>
+                                    </div>
+                                    <ChevronRight className="w-5 h-5 text-gray-400" />
+                                </button>
+                                
+                                <button className="w-full px-4 py-4 flex items-center justify-between hover:bg-gray-50 border-b border-gray-100">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                            <CreditCard className="w-5 h-5 text-green-600" />
+                                        </div>
+                                        <span className="font-medium">M-Pesa Wallet</span>
+                                    </div>
+                                    <ChevronRight className="w-5 h-5 text-gray-400" />
+                                </button>
+
+                                <button className="w-full px-4 py-4 flex items-center justify-between hover:bg-gray-50 border-b border-gray-100">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                                            <Award className="w-5 h-5 text-purple-600" />
+                                        </div>
+                                        <div className="text-left">
+                                            <span className="font-medium block">Pro Membership</span>
+                                            <span className="text-xs text-gray-500">Get more visibility</span>
+                                        </div>
+                                    </div>
+                                    <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold">UPGRADE</span>
+                                </button>
+
+                                <button className="w-full px-4 py-4 flex items-center justify-between hover:bg-gray-50">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                                            <Shield className="w-5 h-5 text-gray-600" />
+                                        </div>
+                                        <span className="font-medium">Verification</span>
+                                    </div>
+                                    <span className="text-green-600 text-sm font-medium flex items-center gap-1">
+                                        <CheckCircle className="w-4 h-4" /> Verified
+                                    </span>
+                                </button>
+                            </div>
+
+                            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                                <button className="w-full px-4 py-4 flex items-center justify-between hover:bg-gray-50 text-red-600">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                                            <X className="w-5 h-5 text-red-600" />
+                                        </div>
+                                        <span className="font-medium">Log Out</span>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            // Bid Screen
+            const BidScreen = () => {
+                const [bidAmount, setBidAmount] = useState('');
+                const [proposal, setProposal] = useState('');
+
+                return (
+                    <div className="min-h-screen bg-gray-50">
+                        <div className="bg-white px-4 pt-12 pb-4 shadow-sm sticky top-0 z-10">
+                            <button 
+                                onClick={() => setCurrentView('taskDetail')}
+                                className="flex items-center gap-2 text-gray-600"
+                            >
+                                <ChevronRight className="w-5 h-5 rotate-180" /> Back
+                            </button>
+                            <h1 className="text-xl font-bold mt-2">Submit Proposal</h1>
+                        </div>
+
+                        <div className="p-4 space-y-4">
+                            <div className="bg-white p-4 rounded-2xl shadow-sm">
+                                <h3 className="font-semibold mb-2">{selectedTask?.title}</h3>
+                                <p className="text-sm text-gray-600 mb-3">{selectedTask?.description}</p>
+                                <div className="flex items-center gap-4 text-sm text-gray-600">
+                                    <span className="flex items-center gap-1">
+                                        <DollarSign className="w-4 h-4" /> Budget: {selectedTask?.budget}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="bg-white p-4 rounded-2xl shadow-sm space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Your Bid (KSh)</label>
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-3 text-gray-500 font-semibold">KSh</span>
+                                        <input 
+                                            type="number" 
+                                            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-lg font-semibold"
+                                            placeholder="Enter amount"
+                                            value={bidAmount}
+                                            onChange={(e) => setBidAmount(e.target.value)}
+                                        />
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-1">Platform fee (10%): KSh {bidAmount ? Math.round(bidAmount * 0.1) : 0}</p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Cover Letter</label>
+                                    <textarea 
+                                        className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                                        rows={5}
+                                        placeholder="Explain why you're perfect for this task..."
+                                        value={proposal}
+                                        onChange={(e) => setProposal(e.target.value)}
+                                    />
+                                </div>
+
+                                <div className="bg-indigo-50 p-3 rounded-lg flex items-start gap-2">
+                                    <Sparkles className="w-5 h-5 text-indigo-600 mt-0.5" />
+                                    <div>
+                                        <p className="text-sm font-medium text-indigo-900">AI Proposal Helper</p>
+                                        <p className="text-xs text-indigo-700 mt-1">Highlight your experience with {selectedTask?.category} to increase your chances.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <Button onClick={() => {
+                                showNotification("Proposal submitted successfully!");
+                                setCurrentView('home');
+                            }}>
+                                Submit Proposal
+                            </Button>
+                        </div>
+                    </div>
+                );
+            };
+
+            // Payment Modal
+            const PaymentModal = () => (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
+                    <div className="bg-white w-full max-w-md rounded-3xl p-6 slide-in">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-bold">Payment</h2>
+                            <button onClick={() => setShowPaymentModal(false)} className="p-2 hover:bg-gray-100 rounded-full">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+                        
+                        <div className="text-center mb-6">
+                            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <CreditCard className="w-8 h-8 text-green-600" />
+                            </div>
+                            <h3 className="font-semibold text-lg">Pay with M-Pesa</h3>
+                            <p className="text-gray-600 text-sm">Enter your M-Pesa number to complete payment</p>
+                        </div>
+
+                        <Input 
+                            label="M-Pesa Number" 
+                            placeholder="07XX XXX XXX"
+                            icon={Phone}
+                        />
+
+                        <div className="bg-gray-50 p-4 rounded-xl mb-6">
+                            <div className="flex justify-between mb-2">
+                                <span className="text-gray-600">Task Amount</span>
+                                <span className="font-semibold">KSh 5,000</span>
+                            </div>
+                            <div className="flex justify-between mb-2">
+                                <span className="text-gray-600">Service Fee (5%)</span>
+                                <span className="font-semibold">KSh 250</span>
+                            </div>
+                            <div className="border-t border-gray-200 pt-2 flex justify-between">
+                                <span className="font-semibold">Total</span>
+                                <span className="font-bold text-indigo-600">KSh 5,250</span>
+                            </div>
+                        </div>
+
+                        <Button onClick={() => {
+                            setShowPaymentModal(false);
+                            showNotification("Payment initiated! Check your phone.");
+                        }}>
+                            Pay Now
+                        </Button>
+                    </div>
+                </div>
+            );
+
+            // Notification Toast
+            const NotificationToast = () => {
+                if (!notification) return null;
+                return (
+                    <div className="fixed top-20 left-4 right-4 bg-gray-900 text-white px-4 py-3 rounded-xl shadow-2xl z-50 flex items-center gap-3 fade-in">
+                        <CheckCircle className="w-5 h-5 text-green-400" />
+                        <span className="font-medium">{notification.message}</span>
+                    </div>
+                );
+            };
+
+            // Render current view
+            const renderView = () => {
+                switch(currentView) {
+                    case 'welcome': return <WelcomeScreen />;
+                    case 'register': return <RegisterScreen />;
+                    case 'login': return <RegisterScreen />;
+                    case 'home': return <HomeScreen />;
+                    case 'taskDetail': return <TaskDetailScreen />;
+                    case 'postTask': return <PostTaskScreen />;
+                    case 'messages': return <MessagesScreen />;
+                    case 'chat': return <ChatScreen />;
+                    case 'profile': return <ProfileScreen />;
+                    case 'bid': return <BidScreen />;
+                    default: return <WelcomeScreen />;
+                }
+            };
+
+            return (
+                <div className="max-w-md mx-auto bg-white min-h-screen shadow-2xl overflow-hidden relative">
+                    {renderView()}
+                    {showPaymentModal && <PaymentModal />}
+                    <NotificationToast />
+                </div>
+            );
+        };
+
+        // Render the app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<TaskConnectApp />);
+    </script>
+</body>
+</html>
